@@ -1,7 +1,13 @@
+"""
+Uses the raw .csv data files to create 
+a series of Graphs (type: list[Data]) to 
+train on.
+"""
 import torch 
 import pandas as pd
 from torch_geometric.data import Data
 from typing import Final
+import os
 
 # python 3.9+ required for full dict type hint support
 def create_mapping(node_raw_path: str) -> dict:
@@ -58,13 +64,14 @@ def create_data_list(traffic_data: pd.DataFrame, num_nodes: int, edge_index: tor
         tail += num_nodes
     return data_list
 
-def main():
+def get_data_list(verbose=False):
     # Raw Data File Paths
-    NODE: Final[str] = 'raw/nodes.csv'
-    EDGE: Final[str] = 'raw/edge_index.csv'
-    DATA: Final[str] = 'raw/traffic_data.csv'
+    ROOT: Final[str] = os.path.join(os.path.dirname(__file__), '..')
+    print(ROOT)
+    NODE: Final[str] = os.path.join(ROOT, 'data', 'raw', 'nodes.csv')
+    EDGE: Final[str] = os.path.join(ROOT, 'data', 'raw', 'edge_index.csv')
+    DATA: Final[str] = os.path.join(ROOT, 'data', 'raw', 'traffic_data.csv')
     
-
     # 1. Create Node ID Mapping DONE 
     MAPPING: Final = create_mapping(NODE)
     NUM_NODES: Final[int] = len(MAPPING) 
@@ -72,24 +79,25 @@ def main():
     # 2. Load edge_index DONE
     EDGE_INDEX: Final[torch.tensor] = load_edge_index(EDGE, mapping=MAPPING)
 
-    # 3. Construct list of Data() objects (one for each graph object)
-    # a. Define columns to use (Note: omitting time )
+    # Define columns to use read into dataFrame (Note: omitting time )
     COLUMNS: Final[list[str]] = [
             'loop', 'num_vehicles', 'flow', 'occupancy', 'label'
             ]
-
     df = pd.read_csv(DATA, usecols=COLUMNS)
     df.loop = df.loop.apply(lambda ID: MAPPING.get(ID)) # apply the ID mapping
     
-
+    # 3. Construct list of Data() objects (one for each graph object)
     data_list = create_data_list(df, NUM_NODES, EDGE_INDEX)
 
-    print("#------Finished DataSet!----------#")
-    print("                 #NODES: ", NUM_NODES)
-    print("                #GRAPHS: ", len(data_list))
-    print("         GRAPH INSTANCE: ", data_list[NUM_NODES-1])
-    print("             edge_index:\n", data_list[NUM_NODES-1].edge_index)
-    print("eg. node feature matrix:\n", data_list[NUM_NODES-1].x)
+    if verbose:
+        print("#------Finished DataSet!----------#")
+        print("                 #NODES: ", NUM_NODES)
+        print("                #GRAPHS: ", len(data_list))
+        print("         GRAPH INSTANCE: ", data_list[NUM_NODES-1])
+        print("             edge_index:\n", data_list[NUM_NODES-1].edge_index)
+        print("eg. node feature matrix:\n", data_list[NUM_NODES-1].x)
+
+    return data_list
 
 if __name__ == "__main__":
-    main()
+    get_data_list(verbose=True)
