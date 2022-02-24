@@ -5,6 +5,7 @@ train on.
 """
 import torch 
 import pandas as pd
+import numpy
 from torch_geometric.data import Data
 from typing import Final
 import os
@@ -33,7 +34,6 @@ def load_edge_index(edge_raw_path: str, mapping: dict=None) -> torch.tensor:
     else:
         source: list[str] = df.source.tolist()
         target: list[str] = df.target.tolist()
-
     return torch.tensor([source, target], dtype=torch.uint8)
 
 def apply_mapping(mapping: dict, lst: list) -> list:
@@ -53,25 +53,28 @@ def create_data_list(traffic_data: pd.DataFrame, num_nodes: int, edge_index: tor
     NUM_GRAPHS: Final[int] = int(len(traffic_data) / num_nodes)
     data_list: list = []
 
-    head: int = 0 
-    tail: int = num_nodes
-    for _ in range(NUM_GRAPHS):
+    head: int = num_nodes # 0 if dont want to skip 1st entry (which is currently all zeros)
+    tail: int = 2*num_nodes # num_nodes if dont wat to skip 1st entry
+    for _ in range(NUM_GRAPHS-1): # remove -1 if not skip first entry
         features = traffic_data[head:tail].get(['num_vehicles', 'flow', 'occupancy'])
         labels = traffic_data[head:tail].get(['label'])
         x = torch.tensor(features.to_numpy(), dtype=torch.float)
-        y = torch.tensor(labels.to_numpy(), dtype=torch.bool)
+        y = torch.tensor(labels.to_numpy().flatten(), dtype=torch.bool)
         graph = Data(x=x, y=y, edge_index=edge_index)
         data_list.append(graph) 
         head += num_nodes
         tail += num_nodes
     return data_list
 
-def get_data_list(verbose=False):
+def get_data_list(
+        root_dir: str,
+        verbose=False, 
+    ):
     # Raw Data File Paths
-    ROOT: Final[str] = os.path.join(os.path.dirname(__file__), '..')
-    NODE: Final[str] = os.path.join(ROOT, 'data', 'raw', 'nodes.csv')
-    EDGE: Final[str] = os.path.join(ROOT, 'data', 'raw', 'edge_index.csv')
-    DATA: Final[str] = os.path.join(ROOT, 'data', 'raw', 'traffic_data.csv')
+    ROOT: Final[str] = os.path.join(os.path.dirname(__file__), '..', root_dir)
+    NODE: Final[str] = os.path.join(ROOT, 'raw', 'nodes.csv')
+    EDGE: Final[str] = os.path.join(ROOT, 'raw', 'edge_index.csv')
+    DATA: Final[str] = os.path.join(ROOT, 'raw', 'traffic_data.csv')
     
     # 1. Create Node ID Mapping DONE 
     MAPPING: Final = create_mapping(NODE)
