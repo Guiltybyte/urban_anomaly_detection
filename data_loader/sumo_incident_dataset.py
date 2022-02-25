@@ -48,6 +48,7 @@ class SumoIncidentDataset(InMemoryDataset):
         ## 1st download to self.raw_dir like below:
         # download_url(url, self.raw_dir)
         ## then unzip
+
     def process(self):
         # Read data into huge data list
         data_list = data_loader.load_csv.get_data_list(

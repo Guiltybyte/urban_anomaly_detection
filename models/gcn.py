@@ -26,4 +26,4 @@ class GCN(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
 
-        return torch.sigmoid(x).flatten()
+        return x.flatten() # torch.sigmoid(x).flatten()
