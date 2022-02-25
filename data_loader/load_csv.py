@@ -59,7 +59,7 @@ def create_data_list(traffic_data: pd.DataFrame, num_nodes: int, edge_index: tor
         features = traffic_data[head:tail].get(['num_vehicles', 'flow', 'occupancy'])
         labels = traffic_data[head:tail].get(['label'])
         x = torch.tensor(features.to_numpy(), dtype=torch.float)
-        y = torch.tensor(labels.to_numpy().flatten(), dtype=torch.bool)
+        y = torch.tensor(labels.to_numpy().flatten(), dtype=torch.uint8)
         graph = Data(x=x, y=y, edge_index=edge_index)
         data_list.append(graph) 
         head += num_nodes
@@ -105,4 +105,4 @@ def get_data_list(
     return data_list
 
 if __name__ == "__main__":
-    get_data_list(verbose=True)
+    get_data_list("data/SUMO_incident", verbose=True)

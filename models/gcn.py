@@ -21,10 +21,9 @@ class GCN(torch.nn.Module):
 
     def forward(self, x, edge_index):
 
-        x = self.conv1(x, edge_index) # what the fuck is the issue here
+        x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
-        # x = global_add_pool(x, batch)
 
-        return F.log_softmax(x, dim=1)
+        return torch.sigmoid(x).flatten()

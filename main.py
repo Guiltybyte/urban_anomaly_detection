@@ -6,38 +6,57 @@ import data_loader.load_csv
 import models.gcn
 from data_loader.sumo_incident_dataset import SumoIncidentDataset
 
+
+# Hyper-Parameters
+EPOCHS: Final[int] = 100
+BATCH_SIZE: Final[int] = 32 
+LEARN_RATE: Final[float] = 0.01
+
+# Setup and test & train dataset
 data_set = SumoIncidentDataset('data', 'SUMO_incident')
-print(f"Num classes: {data_set.num_classes}")
-print(f"Num features: {data_set.num_node_features}")
+train_dataset = data_set[len(data_set) // 10:]
+train_loader  = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_dataset  = data_set[:len(data_set) // 10]
+test_loader   = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
-# data_set = data_loader.load_csv.get_data_list()
-# train_dataset = data_set[len(data_set) // 10:]
-# test_dataset = data_set[:len(data_set) // 10]
-# train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-# test_loader  = DataLoader(test_dataset, batch_size=128, shuffle=True)
 
+# Setup Model
 DEVICE: Final = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-in_channels  = 3
-out_channels = 2
-model = models.gcn.GCN(in_channels, out_channels).to(DEVICE)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+model = models.gcn.GCN(
+            in_channels = train_dataset.num_node_features,
+            out_channels = train_dataset.num_classes - 1 # should probs just say one
+        ).to(DEVICE)
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=5e-4)
 
-def train():
-    model.train() # puts model in training mode
-    for data in train_dataset:
+def binary_acc(y_pred, y_actual) -> float:
+    y_pred_labels = torch.round(y_pred)
+    sum_correct = (y_pred_labels == y_actual).sum().float()
+    acc = sum_correct / y_actual.shape[0] 
+    return torch.round(acc * 100)
+
+# Training
+for e in range(EPOCHS-1):
+    epoch_loss = 0 
+    epoch_acc = 0
+    for data in train_loader:
         data = data.to(DEVICE)
         optimizer.zero_grad()
-        print("data.x", data.x.shape)
-        print("data.edge_index", data.edge_index.shape)
-        out = model(data.x, data.edge_index)
-        print("out: ", out)
-        print("out.shape: ", out.shape)
-        input()
-        # Need to figure out the appropriate loss
-        loss = F.nll_loss(out, data.y)
+        pred_out = model(data.x, data.edge_index)
+        loss = F.binary_cross_entropy(
+                pred_out, 
+                data.y.type(torch.FloatTensor)
+                )
+        acc = binary_acc(
+                pred_out, data.y.type(torch.FloatTensor)
+                ) 
         loss.backward()
         optimizer.step()
-        total_loss += float(loss) * data.num_graphs
-    return total_loss / len(train_dataset)
+        epoch_loss += loss.item()
+        epoch_acc += acc.item()
 
-train()
+    print(
+        f"""
+        Epoch {e+0:03}: 
+        | Loss: {epoch_loss/len(train_loader):.5f}
+        | Acc: {epoch_acc/len(train_loader):.3f}"""
+    )
