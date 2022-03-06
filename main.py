@@ -1,24 +1,33 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 from torch_geometric.loader import DataLoader
 from typing import Final
 import data_loader.load_csv
 import models.gcn
 from data_loader.sumo_incident_dataset import SumoIncidentDataset
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
 
 
 # Hyper-Parameters
-EPOCHS: Final[int] = 100
-BATCH_SIZE: Final[int] = 32 
-LEARN_RATE: Final[float] = 0.01
+EPOCHS: Final[int] = 400
+BATCH_SIZE: Final[int] = 18 # 32 
+LEARN_RATE: Final[float] = 0.001
 
 # Setup and test & train dataset
 data_set = SumoIncidentDataset('data', 'SUMO_incident')
 data_set = data_set.shuffle()
+# train_dataset = data_set[len(data_set) // 10:]
+# train_loader  = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+# test_dataset  = data_set[:len(data_set) // 10]
+# test_loader   = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
 train_dataset = data_set[len(data_set) // 10:]
 train_loader  = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-test_dataset  = data_set[:len(data_set) // 10]
+test_dataset  = data_set[:len(data_set) // 20]
 test_loader   = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+validate_dataset  = data_set[len(data_set) // 20: len(data_set) // 10]
+validate_loader   = DataLoader(validate_dataset, batch_size=len(validate_dataset), shuffle=True)
 
 
 # Setup Model
@@ -48,16 +57,13 @@ for e in range(EPOCHS-1):
         optimizer.zero_grad()
         pred_out = model(data.x, data.edge_index)
         # Higher weight means more recall, less precision
-        loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor(6))
+        # loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor(6))
+        loss_fn = torch.nn.BCEWithLogitsLoss()
         loss = loss_fn(
                 pred_out, 
                 data.y.type(torch.FloatTensor)
                 )
 
-        # loss = F.binary_cross_entropy(
-        #         pred_out, 
-        #         data.y.type(torch.FloatTensor),
-        #         )
         acc = binary_acc(
                 torch.sigmoid(pred_out), data.y.type(torch.FloatTensor)
                 ) 
@@ -76,6 +82,7 @@ for e in range(EPOCHS-1):
                 ) 
         epoch_test_acc += acc.item()
 
+
     print(
         f"""
         Epoch {e+0:03}: 
@@ -83,3 +90,26 @@ for e in range(EPOCHS-1):
         | Train Acc: {epoch_train_acc/len(train_loader):.3f}
         | Test Acc : {epoch_test_acc/len(test_loader):.3f}"""
     )
+
+model.eval()
+for data in validate_loader:
+    data = data.to(DEVICE)
+    pred_out = model(data.x, data.edge_index)
+    acc = binary_acc(
+            torch.sigmoid(pred_out), data.y.type(torch.FloatTensor)
+            ) 
+    fpr, tpr, _ = roc_curve(data.y.numpy(), torch.sigmoid(pred_out).detach().numpy())
+    nopred_f, nopred_t, _ = roc_curve(data.y.numpy(), np.zeros(data.y.numpy().shape))
+
+    plt.figure()
+    plt.axis([0, 1, 0, 1.1])
+    plt.grid()
+    plt.plot(nopred_f, nopred_t, 'k--')
+    plt.plot(fpr, tpr)
+    plt.title("ROC Curve")
+    plt.ylabel("True Positive rate")
+    plt.xlabel("False Positive rate")
+    plt.show()
+
+    # I don't really want to iterate over the validation set
+    break
