@@ -16,8 +16,8 @@ class GCN(torch.nn.Module):
     #              out_channels should be num_classes
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
-        self.conv1 = GCNConv(in_channels, 16)
-        self.conv2 = GCNConv(16, out_channels)
+        self.conv1 = GCNConv(in_channels, 32)
+        self.conv2 = GCNConv(32, out_channels)
 
     def forward(self, x, edge_index):
 
@@ -26,4 +26,4 @@ class GCN(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
 
-        return x.flatten() # torch.sigmoid(x).flatten()
+        return torch.sigmoid(x).flatten()
