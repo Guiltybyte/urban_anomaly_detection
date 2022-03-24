@@ -2,12 +2,16 @@ import torch
 from torch_geometric.data import InMemoryDataset, download_url 
 import data_loader.load_csv
 import os.path
+import numpy as np
+from torch_geometric_temporal.signal import StaticGraphTemporalSignal
+import pickle
 
 class SumoIncidentDataset(InMemoryDataset):
     def __init__(
             self,
-            root,
-            name,
+            root: str,
+            name: str,
+            num_timesteps_in: int,
             transform=None,
             pre_transform=None,
             pre_filter=None
@@ -22,9 +26,18 @@ class SumoIncidentDataset(InMemoryDataset):
 
     @property
     def num_node_features(self) -> int:
-        if self.data.x is None:
-            return 0
-        return self.data.x.size(1)
+        """
+        Returns Number of node features
+        """
+        return 5 
+
+    @property
+    def num_nodes(self) -> int:
+        """
+        Returns Number of node features
+        """
+        # TODO: Figure out how to avoid hard coding this
+        return 104 
 
     @property
     def raw_dir(self) -> str:
@@ -52,7 +65,7 @@ class SumoIncidentDataset(InMemoryDataset):
     def process(self):
         # Read data into huge data list
         data_list = data_loader.load_csv.get_data_list(
-                os.path.join(self.root, self.name)
+                os.path.join(self.root, self.name), self.num_timesteps_in 
                 )
 
         if self.pre_filter is not None:
