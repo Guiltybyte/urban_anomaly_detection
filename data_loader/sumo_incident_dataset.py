@@ -3,7 +3,6 @@ from torch_geometric.data import InMemoryDataset, download_url
 import data_loader.load_csv
 import os.path
 import numpy as np
-from torch_geometric_temporal.signal import StaticGraphTemporalSignal
 import pickle
 
 class SumoIncidentDataset(InMemoryDataset):

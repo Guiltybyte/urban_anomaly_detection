@@ -1,7 +1,6 @@
 """
 Uses the raw .csv data files to create 
-a series of Graphs (type: list[Data]) to 
-train on.
+a Temporal Graph dataset to train on.
 """
 import torch 
 import pandas as pd
@@ -16,7 +15,6 @@ def create_mapping(node_raw_path: str) -> dict:
     Maps each lengthy e1 detector ID string,
     to a unique integer ID.
     """
-    # Optional arg specifies that 1st col should be treated as the index
     df = pd.read_csv(node_raw_path, index_col=0)
     mapping = {index: i for i, index in enumerate(df.index.unique())}
     return mapping
@@ -75,6 +73,7 @@ def get_data_list(root_dir: str, verbose: bool=False):
     COLUMNS: Final[list[str]] = [
             'loop', 'num_vehicles', 'flow', 'occupancy', 'meanSpeed','lastDetectTime', 'label' 
             ]
+
     df = pd.read_csv(DATA, usecols=COLUMNS)
     df.loop = df.loop.apply(lambda ID: MAPPING.get(ID)) # apply the ID mapping
     
