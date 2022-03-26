@@ -10,7 +10,6 @@ class SumoIncidentDataset(InMemoryDataset):
             self,
             root: str,
             name: str,
-            num_timesteps_in: int,
             transform=None,
             pre_transform=None,
             pre_filter=None
@@ -64,7 +63,7 @@ class SumoIncidentDataset(InMemoryDataset):
     def process(self):
         # Read data into huge data list
         data_list = data_loader.load_csv.get_data_list(
-                os.path.join(self.root, self.name), self.num_timesteps_in 
+                os.path.join(self.root, self.name)
                 )
 
         if self.pre_filter is not None:

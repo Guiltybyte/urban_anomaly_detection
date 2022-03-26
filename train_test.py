@@ -1,3 +1,9 @@
+"""
+Modified from:
+R. Hasibi and T. Michoel, “A graph feature auto-encoder for the prediction of unobserved
+node features on biological networks,” BMC bioinformatics, vol. 22, no. 1, pp. 1–17, 2021.
+For working with SUMO Carrickmacross data set.
+"""
 import torch
 from data_loader.sumo_incident_dataset import SumoIncidentDataset
 from models.End_to_End.nets import FAE_FeatGraphConv
@@ -35,7 +41,6 @@ def run():
     model = FAE_FeatGraphConv
     supervised_prediction_eval(model, data)
     
-# TODO: either move data instant into here, global, or make data parameter here more granular
 def train_epoch(model, data, optimizer, 
                 exp_num=None, criterion=None):
     model.train()
@@ -62,7 +67,6 @@ def test(model, data, exp_num, criterion):
     return loss.item()
 
 
-# This kicks everything off
 def supervised_prediction_eval(model_class, data):
     loss_train = []
     criterion = torch.nn.MSELoss()
@@ -97,14 +101,12 @@ def supervised_prediction_eval(model_class, data):
         eval_data.train_mask = index_to_mask(train_index, eval_data.x.size(0))
         eval_data.test_mask = index_to_mask(test_index, eval_data.x.size(0))
 
-        # ??????????????????????????????????????
-        torch.manual_seed(12345)             # ? 
-        if torch.cuda.is_available():        # ?
-            torch.cuda.manual_seed_all(12345)# ?
-        # ??????????????????????????????????????
+        # Here to enable reproducability
+        torch.manual_seed(12345)             
+        if torch.cuda.is_available():        
+            torch.cuda.manual_seed_all(12345)
 
-        # exp_num is actually the number of columns because a seperate model is trained for each column according 
-        # to the paper.
+        # exp_num is the number of features because a seperate model is trained for each feature 
         for exp_num in range(eval_data.y.size(1)):
             model = model_class(eval_data.num_features).to('cpu')
             optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)

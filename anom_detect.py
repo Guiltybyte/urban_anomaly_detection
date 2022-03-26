@@ -124,11 +124,17 @@ def predict():
     print("Shape non_anomaly_losses: ", non_anomaly_losses.shape)
     print("Shape non_anomaly_losses: ", non_anomaly_losses.flatten().shape)
     # plt.title("Visualize Squared Errors")
-    # plt.plot(range(len(non_anomaly_losses[:,0])), non_anomaly_losses[:,0], color='blue') 
-    # plt.plot(range(len(mean_losses[anomaly_idxs][:,0])), mean_losses[anomaly_idxs][:,0], color='red')
+    # plt.scatter(range(len(non_anomaly_losses[:,0])), non_anomaly_losses[:,0], color='blue', s=2,marker=',') 
+    # plt.scatter(range(len(mean_losses[anomaly_idxs][:,0])), mean_losses[anomaly_idxs][:,0], color='red', s=2,marker=',')
     # plt.legend(["Normal", "Anomalous"])
     # plt.ylabel("Mean Squared error")
     # plt.show()
+    plt.title("Squared Errors")
+    kwargs = dict(alpha=0.5, bins=100, density=True)
+    plt.hist(mean_losses[anomaly_idxs][:,0], **kwargs, color='r', label='Anomalous')
+    plt.hist(non_anomaly_losses[:,0], **kwargs, color='b', label='normal')
+    plt.legend()
+    plt.show()
     ########################
     # Thresholding operation
     # Threshold per each model output
